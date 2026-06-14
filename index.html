@@ -246,8 +246,13 @@ const DATA = [
 
 // --- state ---
 const cats = [...new Set(DATA.map(d=>d.c))];
-let filter="Tout", dir="enfr", deck=[], idx=0, flipped=false;
-const known=new Set();              // ids maîtrisés (global)
+const LS_KEY="toeic_cards_v1";
+let store={known:[],filter:"Tout",dir:"enfr"};
+function load(){try{const r=localStorage.getItem(LS_KEY);if(r)store={...store,...JSON.parse(r)};}catch(e){}}
+function save(){try{localStorage.setItem(LS_KEY,JSON.stringify({...store,known:[...known]}));}catch(e){}}
+load();
+let filter=store.filter||"Tout", dir=store.dir||"enfr", deck=[], idx=0, flipped=false;
+const known=new Set(store.known||[]);   // ids maîtrisés (persistés localement)
 const cardId=d=>d.c+"|"+d.en;
 
 const $=id=>document.getElementById(id);
@@ -257,8 +262,8 @@ const card=$("card");
 const chips=$("chips");
 ["Tout",...cats].forEach(c=>{
   const b=document.createElement("button");
-  b.className="chip";b.textContent=c;b.setAttribute("aria-pressed",c==="Tout");
-  b.onclick=()=>{filter=c;[...chips.children].forEach(x=>x.setAttribute("aria-pressed",x===b));rebuild();};
+  b.className="chip";b.textContent=c;b.setAttribute("aria-pressed",c===filter);
+  b.onclick=()=>{filter=c;store.filter=c;save();[...chips.children].forEach(x=>x.setAttribute("aria-pressed",x===b));rebuild();};
   chips.appendChild(b);
 });
 
@@ -270,11 +275,12 @@ function rebuild(){
 function shuffle(){for(let i=deck.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[deck[i],deck[j]]=[deck[j],deck[i]];}idx=0;flipped=false;render();}
 
 function setDir(d){
-  dir=d;$("d-enfr").setAttribute("aria-pressed",d==="enfr");$("d-fren").setAttribute("aria-pressed",d==="fren");
+  dir=d;store.dir=d;save();$("d-enfr").setAttribute("aria-pressed",d==="enfr");$("d-fren").setAttribute("aria-pressed",d==="fren");
   flipped=false;render();
 }
 $("d-enfr").onclick=()=>setDir("enfr");
 $("d-fren").onclick=()=>setDir("fren");
+$("d-enfr").setAttribute("aria-pressed",dir==="enfr");$("d-fren").setAttribute("aria-pressed",dir==="fren");
 
 function render(){
   const total=pool().length, kn=pool().filter(d=>known.has(cardId(d))).length;
@@ -302,7 +308,7 @@ function render(){
 
 function flip(){flipped=!flipped;card.classList.toggle("flip",flipped);}
 function go(step){if(!deck.length)return;flipped=false;idx=(idx+step+deck.length)%deck.length;render();}
-function markKnown(){if(!deck.length)return;known.add(cardId(deck[idx]));deck.splice(idx,1);flipped=false;render();}
+function markKnown(){if(!deck.length)return;known.add(cardId(deck[idx]));save();deck.splice(idx,1);flipped=false;render();}
 function markAgain(){go(1);}   // garde la carte dans le paquet, passe à la suivante
 
 card.onclick=flip;
@@ -312,11 +318,18 @@ $("prev").onclick=()=>go(-1);
 $("shuffle").onclick=shuffle;
 $("again").onclick=markAgain;
 $("know").onclick=markKnown;
-$("restart").onclick=()=>{pool().forEach(d=>known.delete(cardId(d)));rebuild();};
+$("restart").onclick=()=>{pool().forEach(d=>known.delete(cardId(d)));save();rebuild();};
 document.addEventListener("keydown",e=>{
   if(e.key==="ArrowRight")go(1);if(e.key==="ArrowLeft")go(-1);
   if(e.key.toLowerCase()==="k")markKnown();if(e.key.toLowerCase()==="a")markAgain();
 });
+
+// bouton de réinitialisation globale de la progression
+const resetBtn=document.createElement("button");
+resetBtn.textContent="\u21BA Réinitialiser ma progression";
+resetBtn.style.cssText="margin:12px auto 0;display:block;font-size:11px;color:#9aa0a6;background:none;border:0;cursor:pointer";
+resetBtn.onclick=()=>{ if(confirm("Effacer toute la progression mémorisée ?")){ known.clear();store.known=[];store.filter="Tout";save();filter="Tout";[...chips.children].forEach((x,i)=>x.setAttribute("aria-pressed",i===0));rebuild(); } };
+document.querySelector(".wrap").appendChild(resetBtn);
 
 rebuild();
 </script>
