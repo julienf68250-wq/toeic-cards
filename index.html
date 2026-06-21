@@ -79,6 +79,22 @@
   .done h2{margin:0 0 6px;font-size:24px}.done p{color:var(--muted);margin:0 0 22px}
   .done button{background:var(--blue);color:#fff;border:0;border-radius:14px;padding:14px 26px;font-weight:800;font-size:15px;cursor:pointer}
   @media (prefers-reduced-motion:reduce){.card{transition:none}}
+  /* --- mode sombre --- */
+  body.dark{ --bg:#10151c; --card:#1a2230; --ink:#e8edf4; --muted:#93a1b2; --line:#2a3440;
+    background:radial-gradient(120% 80% at 50% -10%,#16212e 0%,#0d1117 60%); }
+  body.dark .chip{ background:#1d2734; border-color:#2a3440; color:#93a1b2; }
+  body.dark .chip[aria-pressed="true"]{ background:var(--blue); color:#fff; border-color:var(--blue); }
+  body.dark .nav button{ background:#1d2734; color:#e8edf4; border-color:#2a3440; }
+  body.dark .nav button:active{ background:#243042; }
+  body.dark .bar{ background:#2a3440; }
+  body.dark .dir{ background:#1d2734; }
+  body.dark .dir button{ color:#93a1b2; }
+  body.dark .dir button[aria-pressed="true"]{ background:#2f3b4d; color:#e8edf4; box-shadow:0 2px 6px rgba(0,0,0,.4); }
+  body.dark .face{ border-color:rgba(255,255,255,.06); }
+  body.dark .back{ background:linear-gradient(170deg,#1d2634,#18202c); }
+  body.dark .done{ background:var(--card); }
+  body.dark .hint{ color:#5d6b7a; }
+  body.dark .back .word{ color:#7aa6ff; }
 </style>
 </head>
 <body>
@@ -329,7 +345,18 @@ const resetBtn=document.createElement("button");
 resetBtn.textContent="\u21BA Réinitialiser ma progression";
 resetBtn.style.cssText="margin:12px auto 0;display:block;font-size:11px;color:#9aa0a6;background:none;border:0;cursor:pointer";
 resetBtn.onclick=()=>{ if(confirm("Effacer toute la progression mémorisée ?")){ known.clear();store.known=[];store.filter="Tout";save();filter="Tout";[...chips.children].forEach((x,i)=>x.setAttribute("aria-pressed",i===0));rebuild(); } };
-document.querySelector(".wrap").appendChild(resetBtn);
+// thème clair/sombre (défaut sombre, partagé sur le même domaine)
+const THKEY="toeic_theme";
+const applyTheme=t=>document.body.classList.toggle("dark",t==="dark");
+let theme; try{theme=localStorage.getItem(THKEY);}catch(e){} if(!theme)theme="dark"; applyTheme(theme);
+const themeBtn=document.createElement("button");
+themeBtn.style.cssText=resetBtn.style.cssText;
+const lblTheme=()=>themeBtn.textContent=theme==="dark"?"☀️ Mode clair":"🌙 Mode sombre"; lblTheme();
+themeBtn.onclick=()=>{theme=document.body.classList.contains("dark")?"light":"dark";applyTheme(theme);try{localStorage.setItem(THKEY,theme);}catch(e){}lblTheme();};
+const footer=document.createElement("div");
+footer.style.cssText="display:flex;gap:18px;justify-content:center;align-items:center;flex-wrap:wrap";
+footer.appendChild(resetBtn);footer.appendChild(themeBtn);
+document.querySelector(".wrap").appendChild(footer);
 
 rebuild();
 </script>
